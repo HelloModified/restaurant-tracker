@@ -442,7 +442,7 @@ export default function Home() {
                       top: '100%',
                       left: 0,
                       right: 0,
-                      backgroundColor: '#FFFFFF',
+                      backgroundColor: '#F5F5F5',
                       border: '2px solid #000000',
                       borderRadius: '6px',
                       maxHeight: '220px',
@@ -457,20 +457,21 @@ export default function Home() {
                           onClick={() => selectPlace(prediction, 'discovery')}
                           style={{
                             padding: '14px 16px',
-                            borderBottom: idx < placeSuggestions.length - 1 ? '1px solid #F0F0F0' : 'none',
-                            backgroundColor: '#FFFFFF',
+                            borderBottom: idx < placeSuggestions.length - 1 ? '1px solid #E0E0E0' : 'none',
+                            backgroundColor: '#F5F5F5',
                             cursor: 'pointer',
-                            color: '#d9a441',
+                            color: '#000000',
                             fontSize: '14px',
                             lineHeight: '1.5',
+                            fontWeight: '500',
                           }}
-                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F9F9F9')}
-                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FFFFFF')}
+                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#E8E8E8')}
+                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#F5F5F5')}
                         >
-                          <div style={{ fontWeight: '700', color: '#d9a441', marginBottom: '2px' }}>
+                          <div style={{ fontWeight: '700', color: '#000000', marginBottom: '2px' }}>
                             {prediction.main_text}
                           </div>
-                          <div style={{ color: '#d9a441', fontSize: '12px' }}>
+                          <div style={{ color: '#000000', fontSize: '12px' }}>
                             {prediction.secondary_text}
                           </div>
                         </div>
@@ -772,7 +773,7 @@ export default function Home() {
                           top: '100%',
                           left: 0,
                           right: 0,
-                          backgroundColor: '#FFFFFF',
+                          backgroundColor: '#F5F5F5',
                           border: '2px solid #000000',
                           borderRadius: '6px',
                           maxHeight: '220px',
@@ -787,20 +788,21 @@ export default function Home() {
                               onClick={() => selectPlace(prediction, 'discovered')}
                               style={{
                                 padding: '14px 16px',
-                                borderBottom: idx < placeSuggestions.length - 1 ? '1px solid #F0F0F0' : 'none',
-                                backgroundColor: '#FFFFFF',
+                                borderBottom: idx < placeSuggestions.length - 1 ? '1px solid #E0E0E0' : 'none',
+                                backgroundColor: '#F5F5F5',
                                 cursor: 'pointer',
-                                color: '#d9a441',
+                                color: '#000000',
                                 fontSize: '14px',
                                 lineHeight: '1.5',
+                                fontWeight: '500',
                               }}
-                              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F9F9F9')}
-                              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FFFFFF')}
+                              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#E8E8E8')}
+                              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#F5F5F5')}
                             >
-                              <div style={{ fontWeight: '700', color: '#d9a441', marginBottom: '2px' }}>
+                              <div style={{ fontWeight: '700', color: '#000000', marginBottom: '2px' }}>
                                 {prediction.main_text}
                               </div>
-                              <div style={{ color: '#d9a441', fontSize: '12px' }}>
+                              <div style={{ color: '#000000', fontSize: '12px' }}>
                                 {prediction.secondary_text}
                               </div>
                             </div>

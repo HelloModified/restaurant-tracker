@@ -202,9 +202,9 @@ a:hover {
   background-color: #e55a1f;
 }
 
-/* Google Places Autocomplete - Enforce Visibility */
+/* Google Places Autocomplete - AGGRESSIVE VISIBILITY FIX */
 .pac-container {
-  background-color: #FFFFFF !important;
+  background-color: #F5F5F5 !important;
   border: 2px solid #000 !important;
   border-radius: 6px !important;
   box-shadow: 0 8px 24px rgba(0,0,0,0.3) !important;
@@ -213,30 +213,32 @@ a:hover {
 }
 
 .pac-item {
-  background-color: #FFFFFF !important;
-  color: var(--mm-amber) !important;
+  background-color: #F5F5F5 !important;
+  color: #000000 !important;
   padding: 14px 16px !important;
-  border-bottom: 1px solid #F0F0F0 !important;
+  border-bottom: 1px solid #E0E0E0 !important;
   font-size: 14px !important;
   line-height: 1.5 !important;
   cursor: pointer !important;
+  font-weight: 500 !important;
 }
 
 .pac-item:hover {
-  background-color: #F9F9F9 !important;
+  background-color: #E8E8E8 !important;
+  color: #000000 !important;
 }
 
 .pac-item-selected {
-  background-color: #F5F5F5 !important;
-  color: var(--mm-amber) !important;
+  background-color: #D0D0D0 !important;
+  color: #000000 !important;
 }
 
 .pac-item-query {
-  color: var(--mm-amber) !important;
+  color: #000000 !important;
   font-weight: 700 !important;
 }
 
 .pac-matched {
-  color: var(--mm-amber) !important;
+  color: #000000 !important;
   font-weight: 700 !important;
 }
