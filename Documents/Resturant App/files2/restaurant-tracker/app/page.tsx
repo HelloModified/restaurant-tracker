@@ -460,20 +460,22 @@ export default function Home() {
                             display: 'block',
                             width: '100%',
                             padding: '14px 16px',
-                            border: idx < placeSuggestions.length - 1 ? '0 0 1px 0 solid #F0F0F0' : 'none',
+                            border: 'none',
                             borderBottom: idx < placeSuggestions.length - 1 ? '1px solid #F0F0F0' : 'none',
                             backgroundColor: '#FFFFFF',
                             textAlign: 'left',
                             cursor: 'pointer',
                             fontFamily: 'inherit',
+                            fontSize: '14px',
+                            lineHeight: '1.5',
                           }}
                           onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F9F9F9')}
                           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FFFFFF')}
                         >
-                          <div style={{ fontSize: '16px', fontWeight: '700', marginBottom: '3px', color: '#d9a441' }}>
+                          <div style={{ fontWeight: '700', color: '#d9a441', marginBottom: '4px' }}>
                             {prediction.main_text}
                           </div>
-                          <div style={{ fontSize: '13px', color: '#d9a441' }}>
+                          <div style={{ color: '#d9a441', fontSize: '12px' }}>
                             {prediction.secondary_text}
                           </div>
                         </button>
@@ -799,14 +801,16 @@ export default function Home() {
                                 textAlign: 'left',
                                 cursor: 'pointer',
                                 fontFamily: 'inherit',
+                                fontSize: '14px',
+                                lineHeight: '1.5',
                               }}
                               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F9F9F9')}
                               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FFFFFF')}
                             >
-                              <div style={{ fontSize: '16px', fontWeight: '700', marginBottom: '3px', color: '#d9a441' }}>
+                              <div style={{ fontWeight: '700', color: '#d9a441', marginBottom: '4px' }}>
                                 {prediction.main_text}
                               </div>
-                              <div style={{ fontSize: '13px', color: '#d9a441' }}>
+                              <div style={{ color: '#d9a441', fontSize: '12px' }}>
                                 {prediction.secondary_text}
                               </div>
                             </button>
