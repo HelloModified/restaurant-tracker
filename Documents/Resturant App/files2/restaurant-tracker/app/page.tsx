@@ -447,38 +447,33 @@ export default function Home() {
                       borderRadius: '6px',
                       maxHeight: '220px',
                       overflowY: 'auto',
-                      zIndex: 1000,
+                      zIndex: 99999,
                       marginTop: '6px',
                       boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
                     }}>
                       {placeSuggestions.map((prediction, idx) => (
-                        <button
+                        <div
                           key={idx}
-                          type="button"
                           onClick={() => selectPlace(prediction, 'discovery')}
                           style={{
-                            display: 'block',
-                            width: '100%',
                             padding: '14px 16px',
-                            border: 'none',
                             borderBottom: idx < placeSuggestions.length - 1 ? '1px solid #F0F0F0' : 'none',
                             backgroundColor: '#FFFFFF',
-                            textAlign: 'left',
                             cursor: 'pointer',
-                            fontFamily: 'inherit',
+                            color: '#d9a441',
                             fontSize: '14px',
                             lineHeight: '1.5',
                           }}
                           onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F9F9F9')}
                           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FFFFFF')}
                         >
-                          <div style={{ fontWeight: '700', color: '#d9a441', marginBottom: '4px' }}>
+                          <div style={{ fontWeight: '700', color: '#d9a441', marginBottom: '2px' }}>
                             {prediction.main_text}
                           </div>
                           <div style={{ color: '#d9a441', fontSize: '12px' }}>
                             {prediction.secondary_text}
                           </div>
-                        </button>
+                        </div>
                       ))}
                     </div>
                   )}
@@ -782,38 +777,33 @@ export default function Home() {
                           borderRadius: '6px',
                           maxHeight: '220px',
                           overflowY: 'auto',
-                          zIndex: 1000,
+                          zIndex: 99999,
                           marginTop: '6px',
                           boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
                         }}>
                           {placeSuggestions.map((prediction, idx) => (
-                            <button
+                            <div
                               key={idx}
-                              type="button"
                               onClick={() => selectPlace(prediction, 'discovered')}
                               style={{
-                                display: 'block',
-                                width: '100%',
                                 padding: '14px 16px',
-                                border: 'none',
                                 borderBottom: idx < placeSuggestions.length - 1 ? '1px solid #F0F0F0' : 'none',
                                 backgroundColor: '#FFFFFF',
-                                textAlign: 'left',
                                 cursor: 'pointer',
-                                fontFamily: 'inherit',
+                                color: '#d9a441',
                                 fontSize: '14px',
                                 lineHeight: '1.5',
                               }}
                               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F9F9F9')}
                               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FFFFFF')}
                             >
-                              <div style={{ fontWeight: '700', color: '#d9a441', marginBottom: '4px' }}>
+                              <div style={{ fontWeight: '700', color: '#d9a441', marginBottom: '2px' }}>
                                 {prediction.main_text}
                               </div>
                               <div style={{ color: '#d9a441', fontSize: '12px' }}>
                                 {prediction.secondary_text}
                               </div>
-                            </button>
+                            </div>
                           ))}
                         </div>
                       )}
