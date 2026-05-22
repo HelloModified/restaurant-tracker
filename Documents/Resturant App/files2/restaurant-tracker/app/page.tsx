@@ -71,8 +71,9 @@ export default function Home() {
     cuisineType: '',
     locationType: 'Restaurant' as 'Cafe' | 'Bar' | 'Restaurant' | 'Pub',
     priceRange: '' as '$' | '$$' | '$$$' | '$$$$' | '',
-    whyTags: [] as ('Coffee' | 'Food' | 'Vibe' | 'Drinks' | 'Merch')[],
+    whyTags: [] as ('just because' | 'looks fun' | 'recommended' | 'vibey')[],
     whyNotes: '',
+    addedBy: 'Dan' as 'Dan' | 'Nick',
   })
 
   const cuisines = [
@@ -227,6 +228,7 @@ export default function Home() {
           price_range: discoveryForm.priceRange || null,
           why_tags: discoveryForm.whyTags,
           why_notes: discoveryForm.whyNotes || null,
+          added_by: discoveryForm.addedBy,
           type: 'Food',
         },
       ])
@@ -244,6 +246,7 @@ export default function Home() {
         priceRange: '',
         whyTags: [],
         whyNotes: '',
+        addedBy: 'Dan',
       })
       loadPlaces()
     } catch (error) {
@@ -405,7 +408,7 @@ export default function Home() {
         <div className={styles.section}>
           <div className={styles.addForm}>
             <span className={styles.eyebrow}>Finding</span>
-            <h2>Add a place to explore</h2>
+            <h2>Add New Place</h2>
             <form onSubmit={handleAddDiscovery}>
               {/* Place Name + Cuisine Type */}
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px', marginBottom: '16px' }}>
@@ -440,33 +443,40 @@ export default function Home() {
                       left: 0,
                       right: 0,
                       backgroundColor: '#FFFFFF',
-                      border: '2px solid #333333',
-                      borderRadius: '4px',
-                      maxHeight: '200px',
+                      border: '2px solid #000000',
+                      borderRadius: '6px',
+                      maxHeight: '220px',
                       overflowY: 'auto',
                       zIndex: 1000,
-                      marginTop: '4px',
+                      marginTop: '6px',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
                     }}>
                       {placeSuggestions.map((prediction, idx) => (
-                        <div
+                        <button
                           key={idx}
+                          type="button"
                           onClick={() => selectPlace(prediction, 'discovery')}
                           style={{
-                            padding: '12px 16px',
-                            borderBottom: '1px solid #EEEEEE',
-                            cursor: 'pointer',
+                            display: 'block',
+                            width: '100%',
+                            padding: '14px 16px',
+                            border: idx < placeSuggestions.length - 1 ? '0 0 1px 0 solid #F0F0F0' : 'none',
+                            borderBottom: idx < placeSuggestions.length - 1 ? '1px solid #F0F0F0' : 'none',
                             backgroundColor: '#FFFFFF',
+                            textAlign: 'left',
+                            cursor: 'pointer',
+                            fontFamily: 'inherit',
                           }}
-                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F5F5F5')}
+                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F9F9F9')}
                           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FFFFFF')}
                         >
-                          <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#000000' }}>
+                          <div style={{ fontSize: '16px', fontWeight: '700', marginBottom: '3px', color: '#d9a441' }}>
                             {prediction.main_text}
                           </div>
-                          <div style={{ fontSize: '14px', color: '#555555', marginTop: '4px' }}>
+                          <div style={{ fontSize: '13px', color: '#d9a441' }}>
                             {prediction.secondary_text}
                           </div>
-                        </div>
+                        </button>
                       ))}
                     </div>
                   )}
@@ -588,7 +598,7 @@ export default function Home() {
                           onChange={(e) => setDiscoveryForm({ ...discoveryForm, locationType: e.target.value as any })}
                           style={{ cursor: 'pointer' }}
                         />
-                        {type}
+                        <span style={{ color: '#F26A2E', fontWeight: '600' }}>{type}</span>
                       </label>
                     ))}
                   </div>
@@ -625,7 +635,7 @@ export default function Home() {
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#1EA7A1', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Why this place?</label>
                 <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
-                  {['Coffee', 'Food', 'Vibe', 'Drinks', 'Merch'].map((tag) => (
+                  {['just because', 'looks fun', 'recommended', 'vibey'].map((tag) => (
                     <button
                       key={tag}
                       type="button"
@@ -646,6 +656,7 @@ export default function Home() {
                         color: discoveryForm.whyTags.includes(tag as any) ? '#1EA7A1' : '#666',
                         cursor: 'pointer',
                         transition: 'all 0.2s ease',
+                        textTransform: 'capitalize',
                       }}
                     >
                       {tag}
@@ -669,6 +680,34 @@ export default function Home() {
                     resize: 'vertical',
                   }}
                 />
+              </div>
+
+              {/* Who added it? */}
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#1EA7A1', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Who added it?</label>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  {['Dan', 'Nick'].map((person) => (
+                    <button
+                      key={person}
+                      type="button"
+                      onClick={() => setDiscoveryForm({ ...discoveryForm, addedBy: person as any })}
+                      style={{
+                        flex: 1,
+                        padding: '12px 16px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        border: discoveryForm.addedBy === person ? '2px solid #F26A2E' : '1px solid #ccc',
+                        borderRadius: '6px',
+                        backgroundColor: discoveryForm.addedBy === person ? '#F26A2E' : 'rgba(255, 255, 255, 0.8)',
+                        color: discoveryForm.addedBy === person ? 'white' : '#000',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      {person}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <button type="submit" className={styles.primaryBtn} style={{ width: '100%' }}>
@@ -737,32 +776,40 @@ export default function Home() {
                           left: 0,
                           right: 0,
                           backgroundColor: '#FFFFFF',
-                          border: '2px solid #333333',
-                          borderRadius: '4px',
-                          maxHeight: '200px',
+                          border: '2px solid #000000',
+                          borderRadius: '6px',
+                          maxHeight: '220px',
                           overflowY: 'auto',
                           zIndex: 1000,
+                          marginTop: '6px',
+                          boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
                         }}>
                           {placeSuggestions.map((prediction, idx) => (
-                            <div
+                            <button
                               key={idx}
+                              type="button"
                               onClick={() => selectPlace(prediction, 'discovered')}
                               style={{
-                                padding: '12px 16px',
-                                borderBottom: '1px solid #EEEEEE',
-                                cursor: 'pointer',
+                                display: 'block',
+                                width: '100%',
+                                padding: '14px 16px',
+                                border: 'none',
+                                borderBottom: idx < placeSuggestions.length - 1 ? '1px solid #F0F0F0' : 'none',
                                 backgroundColor: '#FFFFFF',
+                                textAlign: 'left',
+                                cursor: 'pointer',
+                                fontFamily: 'inherit',
                               }}
-                              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F5F5F5')}
+                              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F9F9F9')}
                               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FFFFFF')}
                             >
-                              <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#000000' }}>
+                              <div style={{ fontSize: '16px', fontWeight: '700', marginBottom: '3px', color: '#d9a441' }}>
                                 {prediction.main_text}
                               </div>
-                              <div style={{ fontSize: '14px', color: '#555555', marginTop: '4px' }}>
+                              <div style={{ fontSize: '13px', color: '#d9a441' }}>
                                 {prediction.secondary_text}
                               </div>
-                            </div>
+                            </button>
                           ))}
                         </div>
                       )}
