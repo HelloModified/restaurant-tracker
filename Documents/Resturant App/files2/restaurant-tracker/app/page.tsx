@@ -1,342 +1,203 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
 import styles from './page.module.css'
 
-declare global {
-  interface Window {
-    google: any
-  }
-}
-
-interface OrderedItem {
-  id: string
+interface Item {
   name: string
-  tag: 'Drink' | 'Food' | 'Dessert' | 'Activity'
-  price: number
-  tasteRating: number
+  rating: number
+  notes: string
 }
 
 interface Visit {
-  id: string
-  date: string
-  attendees: 'Dan' | 'Nick' | 'Dan & Nick' | 'A Party'
-  mealType?: string
-  priceTier: 'Cheap' | 'Fair' | 'Expensive'
-  vibe: number
-  service: number
-  items: OrderedItem[]
+  id: number
+  visitDate: string
+  items: Item[]
+  overallRating: number
+  company: string
+  atmosphere: string
+  wouldReturn: boolean
+  highlights: string
+  pricePoint: string
+  nextTime: string
 }
 
-interface DiscoveredPlace {
+interface Entry {
   id: number
   name: string
+  type: string
   location: string
-  type: 'Food' | 'Fun'
-  visits: Visit[]
-  createdAt: string
-}
-
-interface DiscoveryPlace {
-  id: number
-  name: string
-  location: string
-  type: 'Food' | 'Fun'
   notes: string
-  source?: string
+  cuisine?: string
+  highlights?: string
+  tips?: string
+  visits: Visit[]
+  lastVisited?: string
   createdAt: string
 }
 
 export default function Home() {
-  const [tab, setTab] = useState<'discovery' | 'discovered'>('discovery')
-  const [discoveryPlaces, setDiscoveryPlaces] = useState<DiscoveryPlace[]>([])
-  const [discoveredPlaces, setDiscoveredPlaces] = useState<DiscoveredPlace[]>([])
+  const [entries, setEntries] = useState<Entry[]>([])
+  const [filter, setFilter] = useState('all')
   const [loading, setLoading] = useState(true)
-  const [selectedPlace, setSelectedPlace] = useState<DiscoveredPlace | null>(null)
-  const [showNewVisitModal, setShowNewVisitModal] = useState(false)
-  const [locationSuggestions, setLocationSuggestions] = useState<any[]>([])
-  const [showLocationDropdown, setShowLocationDropdown] = useState(false)
-  const [locationDropdownType, setLocationDropdownType] = useState<'discovery' | 'discovered' | null>(null)
-  const [placeSuggestions, setPlaceSuggestions] = useState<any[]>([])
-  const [showPlaceDropdown, setShowPlaceDropdown] = useState(false)
-  const [placeDropdownType, setPlaceDropdownType] = useState<'discovery' | 'discovered' | null>(null)
-  const autocompleteService = useRef<any>(null)
-  const placesService = useRef<any>(null)
+  const [formLoading, setFormLoading] = useState(false)
+  const [expandedCard, setExpandedCard] = useState<number | null>(null)
+  const [sortBy, setSortBy] = useState('added')
 
-  const [discoveryForm, setDiscoveryForm] = useState({
+  const [formData, setFormData] = useState({
     name: '',
+    type: 'restaurant',
     location: '',
-    type: 'Food' as 'Food' | 'Fun',
     notes: '',
-    source: '',
-  })
-
-  const [discoveredForm, setDiscoveredForm] = useState({
-    name: '',
-    location: '',
-    type: 'Food' as 'Food' | 'Fun',
   })
 
   const [visitForm, setVisitForm] = useState({
-    date: new Date().toISOString().split('T')[0],
-    attendees: 'Dan & Nick' as 'Dan' | 'Nick' | 'Dan & Nick' | 'A Party',
-    mealType: 'Dinner',
-    priceTier: 'Fair' as 'Cheap' | 'Fair' | 'Expensive',
-    vibe: 5,
-    service: 5,
-    items: [{ name: '', tag: 'Food' as const, price: 0, tasteRating: 5 }],
+    visitDate: new Date().toISOString().split('T')[0],
+    items: [{ name: '', rating: 5, notes: '' }],
+    overallRating: 5,
+    company: '',
+    atmosphere: '',
+    wouldReturn: true,
+    highlights: '',
+    pricePoint: '$$',
+    nextTime: '',
   })
 
   useEffect(() => {
-    loadPlaces()
+    loadEntries()
   }, [])
 
-  const searchLocations = async (query: string) => {
-    if (query.length < 2) {
-      setLocationSuggestions([])
-      return
-    }
-
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`
-      )
-      const data = await response.json()
-      setLocationSuggestions(data || [])
-      setShowLocationDropdown(true)
-    } catch (error) {
-      console.error('Location search error:', error)
-    }
-  }
-
-  const searchPlaces = async (query: string, type: 'discovery' | 'discovered') => {
-    if (query.length < 2) {
-      setPlaceSuggestions([])
-      return
-    }
-
-    try {
-      const response = await fetch(
-        `/api/places?action=autocomplete&input=${encodeURIComponent(query)}`
-      )
-      const data = await response.json()
-      
-      if (data.predictions) {
-        setPlaceSuggestions(data.predictions)
-        setShowPlaceDropdown(true)
-        setPlaceDropdownType(type)
-      }
-    } catch (error) {
-      console.error('Place search error:', error)
-    }
-  }
-
-  const selectPlace = async (prediction: any, type: 'discovery' | 'discovered') => {
-    try {
-      const response = await fetch(
-        `/api/places?action=details&placeId=${prediction.place_id}`
-      )
-      const data = await response.json()
-      
-      if (data.result) {
-        const placeName = data.result.name
-        const address = data.result.formatted_address
-
-        if (type === 'discovery') {
-          setDiscoveryForm({
-            ...discoveryForm,
-            name: placeName,
-            location: address,
-          })
-        } else {
-          setDiscoveredForm({
-            ...discoveredForm,
-            name: placeName,
-            location: address,
-          })
-        }
-
-        setShowPlaceDropdown(false)
-        setPlaceSuggestions([])
-      }
-    } catch (error) {
-      console.error('Error fetching place details:', error)
-    }
-  }
-
-  const loadPlaces = async () => {
+  const loadEntries = async () => {
     try {
       setLoading(true)
-      const { data: discovery, error: discError } = await supabase
-        .from('discovery')
+      const { data, error } = await supabase
+        .from('entries')
         .select('*')
         .order('created_at', { ascending: false })
 
-      const { data: discovered, error: discvError } = await supabase
-        .from('discovered')
-        .select('*')
-        .order('created_at', { ascending: false })
-
-      if (discError) console.error('Discovery error:', discError)
-      if (discvError) console.error('Discovered error:', discvError)
-
-      setDiscoveryPlaces(discovery || [])
-      setDiscoveredPlaces(discovered || [])
+      if (error) throw error
+      setEntries(data || [])
     } catch (error) {
-      console.error('Error loading places:', error)
+      console.error('Error loading entries:', error)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleAddDiscovery = async (e: React.FormEvent) => {
+  const handleAddEntry = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!discoveryForm.name.trim()) return
+    if (!formData.name.trim()) return
 
     try {
-      const { error } = await supabase.from('discovery').insert([
+      setFormLoading(true)
+      const { error } = await supabase.from('entries').insert([
         {
-          name: discoveryForm.name,
-          location: discoveryForm.location,
-          type: discoveryForm.type,
-          notes: discoveryForm.notes,
-          source: discoveryForm.source || null,
-        },
-      ])
-
-      if (error) {
-        console.error('Insert error:', error)
-        throw error
-      }
-      setDiscoveryForm({ name: '', location: '', type: 'Food', notes: '', source: '' })
-      loadPlaces()
-    } catch (error) {
-      console.error('Error adding discovery:', error)
-    }
-  }
-
-  const handleAddDiscovered = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!discoveredForm.name.trim()) return
-
-    try {
-      const { error } = await supabase.from('discovered').insert([
-        {
-          name: discoveredForm.name,
-          location: discoveredForm.location,
-          type: discoveredForm.type,
+          name: formData.name,
+          type: formData.type,
+          location: formData.location,
+          notes: formData.notes,
           visits: [],
         },
       ])
 
       if (error) throw error
-      setDiscoveredForm({ name: '', location: '', type: 'Food' })
-      loadPlaces()
-      setTab('discovered')
+      setFormData({ name: '', type: 'restaurant', location: '', notes: '' })
+      loadEntries()
     } catch (error) {
-      console.error('Error adding discovered:', error)
+      console.error('Error adding entry:', error)
+    } finally {
+      setFormLoading(false)
     }
   }
 
-  const handleLogVisit = async () => {
+  const handleLogVisit = async (entryId: number) => {
     try {
-      if (!selectedPlace) return
+      const entry = entries.find((e) => e.id === entryId)
+      if (!entry) return
 
-      const newVisit: Visit = {
-        id: Date.now().toString(),
-        date: visitForm.date,
-        attendees: visitForm.attendees,
-        mealType: visitForm.mealType,
-        priceTier: visitForm.priceTier,
-        vibe: visitForm.vibe,
-        service: visitForm.service,
-        items: visitForm.items
-          .filter((item) => item.name.trim())
-          .map((item) => ({
-            ...item,
-            id: Math.random().toString(),
-          })),
-      }
-
-      const updatedVisits = [...(selectedPlace.visits || []), newVisit]
+      const updatedVisits = [...(entry.visits || []), { ...visitForm, id: Date.now() }]
 
       const { error } = await supabase
-        .from('discovered')
-        .update({ visits: updatedVisits })
-        .eq('id', selectedPlace.id)
+        .from('entries')
+        .update({
+          visits: updatedVisits,
+          last_visited: visitForm.visitDate,
+        })
+        .eq('id', entryId)
 
       if (error) throw error
-      setShowNewVisitModal(false)
+      setExpandedCard(null)
       setVisitForm({
-        date: new Date().toISOString().split('T')[0],
-        attendees: 'Dan & Nick',
-        mealType: 'Dinner',
-        priceTier: 'Fair',
-        vibe: 5,
-        service: 5,
-        items: [{ name: '', tag: 'Food', price: 0, tasteRating: 5 }],
+        visitDate: new Date().toISOString().split('T')[0],
+        items: [{ name: '', rating: 5, notes: '' }],
+        overallRating: 5,
+        company: '',
+        atmosphere: '',
+        wouldReturn: true,
+        highlights: '',
+        pricePoint: '$$',
+        nextTime: '',
       })
-      loadPlaces()
+      loadEntries()
     } catch (error) {
       console.error('Error logging visit:', error)
     }
   }
 
-  const handleMoveToDiscovered = async (discoveryId: number) => {
+  const handleDelete = async (id: number) => {
     try {
-      const place = discoveryPlaces.find((p) => p.id === discoveryId)
-      if (!place) return
-
-      await supabase.from('discovered').insert([
-        {
-          name: place.name,
-          location: place.location,
-          type: place.type,
-          visits: [],
-        },
-      ])
-
-      await supabase.from('discovery').delete().eq('id', discoveryId)
-      loadPlaces()
+      const { error } = await supabase.from('entries').delete().eq('id', id)
+      if (error) throw error
+      loadEntries()
     } catch (error) {
-      console.error('Error moving to discovered:', error)
+      console.error('Error deleting entry:', error)
     }
   }
 
-  const handleDeleteDiscovery = async (id: number) => {
-    try {
-      await supabase.from('discovery').delete().eq('id', id)
-      loadPlaces()
-    } catch (error) {
-      console.error('Error deleting:', error)
-    }
+  const handleAddItem = () => {
+    setVisitForm({
+      ...visitForm,
+      items: [...visitForm.items, { name: '', rating: 5, notes: '' }],
+    })
   }
 
-  const handleDeleteDiscovered = async (id: number) => {
-    try {
-      await supabase.from('discovered').delete().eq('id', id)
-      setSelectedPlace(null)
-      loadPlaces()
-    } catch (error) {
-      console.error('Error deleting:', error)
-    }
+  const handleRemoveItem = (idx: number) => {
+    setVisitForm({
+      ...visitForm,
+      items: visitForm.items.filter((_, i) => i !== idx),
+    })
   }
 
-  const getAggregateStats = (place: DiscoveredPlace) => {
-    if (!place.visits || place.visits.length === 0) return null
-
-    const allItems = place.visits.flatMap((v) => v.items)
-    const avgTaste =
-      allItems.length > 0
-        ? (allItems.reduce((sum, item) => sum + item.tasteRating, 0) / allItems.length).toFixed(1)
-        : 0
-
-    const avgVibe = (place.visits.reduce((sum, v) => sum + v.vibe, 0) / place.visits.length).toFixed(1)
-    const avgService = (place.visits.reduce((sum, v) => sum + v.service, 0) / place.visits.length).toFixed(1)
-
-    return { avgTaste, avgVibe, avgService, totalVisits: place.visits.length }
+  const handleUpdateItem = (idx: number, field: string, value: any) => {
+    const newItems = [...visitForm.items]
+    newItems[idx] = { ...newItems[idx], [field]: value }
+    setVisitForm({ ...visitForm, items: newItems })
   }
+
+  const filteredEntries = entries
+    .filter((e) => (filter === 'all' ? true : e.type === filter))
+    .sort((a, b) => {
+      if (sortBy === 'added') return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      if (sortBy === 'rating') return (b.visits?.length || 0) - (a.visits?.length || 0)
+      if (sortBy === 'name') return a.name.localeCompare(b.name)
+      return 0
+    })
+
+  const StarRating = ({ value, onChange }: { value: number; onChange: (v: number) => void }) => (
+    <div className={styles.starRating}>
+      {[1, 2, 3, 4, 5].map((star) => (
+        <button
+          key={star}
+          type="button"
+          onClick={() => onChange(star)}
+          className={star <= value ? styles.starFilled : styles.starEmpty}
+        >
+          ★
+        </button>
+      ))}
+    </div>
+  )
 
   if (loading) {
     return <div className={styles.container}>Loading...</div>
@@ -345,599 +206,241 @@ export default function Home() {
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <span className={styles.eyebrow}>Exploration & Discovery</span>
-        <h1>Our Adventure List</h1>
-        <p style={{ marginTop: '0.5rem', opacity: 0.75, fontSize: '15px' }}>
-          Track restaurants and activities you discover together. No theater. Just rigor and fun.
-        </p>
-        <div className={styles.tabs}>
-          <button
-            className={tab === 'discovery' ? styles.tabActive : styles.tabInactive}
-            onClick={() => setTab('discovery')}
-          >
-            Yet to Go {discoveryPlaces.length}
-          </button>
-          <button
-            className={tab === 'discovered' ? styles.tabActive : styles.tabInactive}
-            onClick={() => setTab('discovered')}
-          >
-            Been There {discoveredPlaces.length}
-          </button>
-        </div>
+        <h1>📍 Our Discovery List</h1>
+        <p>Save restaurants and activities to explore together</p>
       </header>
 
-      {tab === 'discovery' ? (
-        <div className={styles.section}>
-          <div className={styles.addForm}>
-            <span className={styles.eyebrow}>Finding</span>
-            <h2>Add a place to explore</h2>
-            <form onSubmit={handleAddDiscovery}>
-              <div className={styles.formRow}>
-                <div style={{ position: 'relative', flex: 1 }}>
-                  <input
-                    type="text"
-                    placeholder="Place name"
-                    value={discoveryForm.name}
-                    onChange={(e) => {
-                      setDiscoveryForm({ ...discoveryForm, name: e.target.value })
-                      setPlaceDropdownType('discovery')
-                      searchPlaces(e.target.value, 'discovery')
-                    }}
-                    onFocus={() => discoveryForm.name && setShowPlaceDropdown(true)}
-                    onBlur={() => setTimeout(() => setShowPlaceDropdown(false), 200)}
-                    required
-                  />
-                  {showPlaceDropdown && placeDropdownType === 'discovery' && placeSuggestions.length > 0 && (
-                    <div style={{
-                      position: 'absolute',
-                      top: '100%',
-                      left: 0,
-                      right: 0,
-                      backgroundColor: '#FFFFFF',
-                      border: '1px solid #ccc',
-                      borderRadius: '0 0 6px 6px',
-                      maxHeight: '200px',
-                      overflowY: 'auto',
-                      zIndex: 100,
-                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-                    }}>
-                      {placeSuggestions.map((prediction, idx) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          style={{
-                            display: 'block',
-                            width: '100%',
-                            padding: '14px 16px',
-                            background: 'white',
-                            border: 'none',
-                            borderBottom: '1px solid #f0f0f0',
-                            textAlign: 'left',
-                            cursor: 'pointer',
-                          }}
-                          onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#f9f9f9')}
-                          onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'white')}
-                          onClick={() => selectPlace(prediction, 'discovery')}
-                        >
-                          <div style={{ fontSize: '15px', fontWeight: '600', color: '#000000' }}>
-                            {prediction.main_text}
-                          </div>
-                          <div style={{ fontSize: '13px', color: '#666666', marginTop: '2px' }}>
-                            {prediction.secondary_text}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <select
-                  value={discoveryForm.type}
-                  onChange={(e) => setDiscoveryForm({ ...discoveryForm, type: e.target.value as 'Food' | 'Fun' })}
-                >
-                  <option value="Food">Food</option>
-                  <option value="Fun">Fun</option>
-                </select>
+      <div className={styles.addForm}>
+        <h2>➕ Add a new spot</h2>
+        <form onSubmit={handleAddEntry}>
+          <div className={styles.formRow}>
+            <input
+              type="text"
+              placeholder="Name (required)"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              required
+            />
+            <select value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value })}>
+              <option value="restaurant">🍽️ Restaurant</option>
+              <option value="activity">🎯 Activity</option>
+              <option value="cafe">☕ Café</option>
+              <option value="bar">🍹 Bar</option>
+              <option value="other">✨ Other</option>
+            </select>
+          </div>
+
+          <input
+            type="text"
+            placeholder="Location or neighborhood"
+            value={formData.location}
+            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+          />
+
+          <textarea
+            placeholder="Notes, cuisine type, what intrigues you..."
+            value={formData.notes}
+            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+            rows={4}
+          />
+
+          <button type="submit" disabled={formLoading}>
+            {formLoading ? 'Adding...' : 'Add to list'}
+          </button>
+        </form>
+      </div>
+
+      <div className={styles.filters}>
+        <div className={styles.filterButtons}>
+          {['all', 'restaurant', 'activity', 'cafe', 'bar'].map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setFilter(cat)}
+              className={filter === cat ? styles.filterActive : styles.filterInactive}
+            >
+              {cat === 'all' ? 'All' : cat.charAt(0).toUpperCase() + cat.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+          <option value="added">Newest first</option>
+          <option value="rating">Most visited</option>
+          <option value="name">A to Z</option>
+        </select>
+      </div>
+
+      {filteredEntries.length === 0 ? (
+        <div className={styles.empty}>
+          <p>No {filter === 'all' ? 'items' : filter + 's'} yet. Start adding spots to explore!</p>
+        </div>
+      ) : (
+        <div className={styles.grid}>
+          {filteredEntries.map((entry) => (
+            <div key={entry.id} className={styles.card}>
+              <div className={styles.cardHeader}>
+                <h3>{entry.name}</h3>
+                <button onClick={() => handleDelete(entry.id)} className={styles.deleteBtn}>
+                  ✕
+                </button>
               </div>
 
-              <input
-                type="text"
-                placeholder="Location or neighborhood"
-                value={discoveryForm.location}
-                onChange={(e) => {
-                  setDiscoveryForm({ ...discoveryForm, location: e.target.value })
-                  setLocationDropdownType('discovery')
-                  searchLocations(e.target.value)
-                }}
-                onFocus={() => discoveryForm.location && setShowLocationDropdown(true)}
-                onBlur={() => setTimeout(() => setShowLocationDropdown(false), 200)}
-              />
-              {showLocationDropdown && locationDropdownType === 'discovery' && locationSuggestions.length > 0 && (
-                <div className={styles.locationDropdown}>
-                  {locationSuggestions.map((suggestion, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      className={styles.locationOption}
-                      onClick={() => {
-                        setDiscoveryForm({
-                          ...discoveryForm,
-                          location: `${suggestion.name} ${suggestion.address || ''}`.trim(),
-                        })
-                        setShowLocationDropdown(false)
-                        setLocationSuggestions([])
-                      }}
-                    >
-                      <div className={styles.locationName}>{suggestion.name}</div>
-                      <div className={styles.locationAddress}>{suggestion.address || suggestion.display_name}</div>
-                    </button>
+              {entry.location && <p className={styles.location}>📍 {entry.location}</p>}
+              {entry.notes && <p className={styles.notes}>"{entry.notes}"</p>}
+
+              {entry.visits && entry.visits.length > 0 && (
+                <div className={styles.visitSummary}>
+                  <p>📋 {entry.visits.length} visit{entry.visits.length !== 1 ? 's' : ''}</p>
+                  {entry.visits.slice(-1).map((visit) => (
+                    <div key={visit.id} className={styles.lastVisit}>
+                      <div>{visit.visitDate}</div>
+                      <div>⭐ Overall: {visit.overallRating}/5</div>
+                      {visit.items.length > 0 && (
+                        <div>Best: {visit.items.reduce((a, b) => a.rating > b.rating ? a : b).name}</div>
+                      )}
+                    </div>
                   ))}
                 </div>
               )}
 
-              <textarea
-                placeholder="Why interested? What have you heard?"
-                value={discoveryForm.notes}
-                onChange={(e) => setDiscoveryForm({ ...discoveryForm, notes: e.target.value })}
-                rows={3}
-              />
-
-              <input
-                type="text"
-                placeholder="Yelp or Google URL (optional)"
-                value={discoveryForm.source}
-                onChange={(e) => setDiscoveryForm({ ...discoveryForm, source: e.target.value })}
-              />
-
-              <button type="submit" className={styles.primaryBtn}>
-                Add to Yet to Go
+              <button onClick={() => setExpandedCard(expandedCard === entry.id ? null : entry.id)} className={styles.logBtn}>
+                ✏️ Log a visit
               </button>
-            </form>
-          </div>
-
-          {discoveryPlaces.length === 0 ? (
-            <div className={styles.empty}>
-              <p>No discoveries yet. Start exploring!</p>
             </div>
-          ) : (
-            <div className={styles.grid}>
-              {discoveryPlaces.map((place) => (
-                <div key={place.id} className={styles.card}>
-                  <h3>{place.name}</h3>
-                  <p className={styles.location}>📍 {place.location}</p>
-                  <span className={styles.badge}>{place.type}</span>
-                  {place.notes && <p className={styles.notes}>"{place.notes}"</p>}
-                  {place.source && (
-                    <a href={place.source} target="_blank" rel="noopener noreferrer" className={styles.link}>
-                      View source →
-                    </a>
-                  )}
-                  <div className={styles.cardActions}>
-                    <button onClick={() => handleMoveToDiscovered(place.id)} className={styles.primaryBtn}>
-                      ✓ Been there!
-                    </button>
-                    <button onClick={() => handleDeleteDiscovery(place.id)} className={styles.dangerBtn}>
-                      ✕
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className={styles.section}>
-          {!selectedPlace ? (
-            <>
-              <div className={styles.addForm}>
-                <span className={styles.eyebrow}>Visiting</span>
-                <h2>Log a new visit</h2>
-                <form onSubmit={handleAddDiscovered}>
-                  <div className={styles.formRow}>
-                    <div style={{ position: 'relative', flex: 1 }}>
-                      <input
-                        type="text"
-                        placeholder="Place name"
-                        value={discoveredForm.name}
-                        onChange={(e) => {
-                          setDiscoveredForm({ ...discoveredForm, name: e.target.value })
-                          setPlaceDropdownType('discovered')
-                          searchPlaces(e.target.value, 'discovered')
-                        }}
-                        onFocus={() => discoveredForm.name && setShowPlaceDropdown(true)}
-                        onBlur={() => setTimeout(() => setShowPlaceDropdown(false), 200)}
-                        required
-                      />
-                      {showPlaceDropdown && placeDropdownType === 'discovered' && placeSuggestions.length > 0 && (
-                        <div style={{
-                          position: 'absolute',
-                          top: '100%',
-                          left: 0,
-                          right: 0,
-                          backgroundColor: '#FFFFFF',
-                          border: '1px solid #ccc',
-                          borderRadius: '0 0 6px 6px',
-                          maxHeight: '200px',
-                          overflowY: 'auto',
-                          zIndex: 100,
-                          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-                        }}>
-                          {placeSuggestions.map((prediction, idx) => (
-                            <button
-                              key={idx}
-                              type="button"
-                              style={{
-                                display: 'block',
-                                width: '100%',
-                                padding: '14px 16px',
-                                background: 'white',
-                                border: 'none',
-                                borderBottom: '1px solid #f0f0f0',
-                                textAlign: 'left',
-                                cursor: 'pointer',
-                              }}
-                              onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#f9f9f9')}
-                              onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'white')}
-                              onClick={() => selectPlace(prediction, 'discovered')}
-                            >
-                              <div style={{ fontSize: '15px', fontWeight: '600', color: '#000000' }}>
-                                {prediction.main_text}
-                              </div>
-                              <div style={{ fontSize: '13px', color: '#666666', marginTop: '2px' }}>
-                                {prediction.secondary_text}
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <select
-                      value={discoveredForm.type}
-                      onChange={(e) => setDiscoveredForm({ ...discoveredForm, type: e.target.value as 'Food' | 'Fun' })}
-                    >
-                      <option value="Food">Food</option>
-                      <option value="Fun">Fun</option>
-                    </select>
-                  </div>
-
-                  <input
-                    type="text"
-                    placeholder="Location"
-                    value={discoveredForm.location}
-                    onChange={(e) => {
-                      setDiscoveredForm({ ...discoveredForm, location: e.target.value })
-                      setLocationDropdownType('discovered')
-                      searchLocations(e.target.value)
-                    }}
-                    onFocus={() => discoveredForm.location && setShowLocationDropdown(true)}
-                    onBlur={() => setTimeout(() => setShowLocationDropdown(false), 200)}
-                  />
-                  {showLocationDropdown && locationDropdownType === 'discovered' && locationSuggestions.length > 0 && (
-                    <div className={styles.locationDropdown}>
-                      {locationSuggestions.map((suggestion, idx) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          className={styles.locationOption}
-                          onClick={() => {
-                            setDiscoveredForm({
-                              ...discoveredForm,
-                              location: `${suggestion.name} ${suggestion.address || ''}`.trim(),
-                            })
-                            setShowLocationDropdown(false)
-                            setLocationSuggestions([])
-                          }}
-                        >
-                          <div className={styles.locationName}>{suggestion.name}</div>
-                          <div className={styles.locationAddress}>{suggestion.address || suggestion.display_name}</div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  <button type="submit" className={styles.primaryBtn}>
-                    Create & Log Visit
-                  </button>
-                </form>
-              </div>
-
-              {discoveredPlaces.length === 0 ? (
-                <div className={styles.empty}>
-                  <p>No visited places yet. Move from Yet to Go or create a new entry!</p>
-                </div>
-              ) : (
-                <div className={styles.grid}>
-                  {discoveredPlaces.map((place) => {
-                    const stats = getAggregateStats(place)
-                    return (
-                      <div
-                        key={place.id}
-                        className={styles.card}
-                        onClick={() => setSelectedPlace(place)}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        <h3>{place.name}</h3>
-                        <p className={styles.location}>📍 {place.location}</p>
-                        <span className={styles.badge}>{place.type}</span>
-
-                        {stats && (
-                          <div className={styles.stats}>
-                            <div>
-                              <strong>{stats.totalVisits}</strong> visits
-                            </div>
-                            <div>⭐ Taste: {stats.avgTaste}</div>
-                            <div>🎭 Vibe: {stats.avgVibe}</div>
-                            <div>👥 Service: {stats.avgService}</div>
-                          </div>
-                        )}
-
-                        <button className={styles.detailBtn} onClick={(e) => e.stopPropagation()}>
-                          View Details →
-                        </button>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </>
-          ) : (
-            <div className={styles.detailView}>
-              <button onClick={() => setSelectedPlace(null)} className={styles.backBtn}>
-                ← Back
-              </button>
-
-              <h2>{selectedPlace.name}</h2>
-              <p className={styles.location}>📍 {selectedPlace.location}</p>
-              <button
-                onClick={() => {
-                  // Open in Apple Maps - for now using a generic maps search
-                  window.location.href = `https://maps.apple.com/?q=${encodeURIComponent(selectedPlace.name + ' ' + selectedPlace.location)}`
-                }}
-                className={styles.primaryBtn}
-                style={{ marginBottom: '1.5rem' }}
-              >
-                🗺️ Open in Maps
-              </button>
-
-              <div className={styles.detailColumns}>
-                <div className={styles.column}>
-                  <h3>Visits ({selectedPlace.visits?.length || 0})</h3>
-                  <button
-                    onClick={() => setShowNewVisitModal(true)}
-                    className={styles.primaryBtn}
-                    style={{ width: '100%', marginBottom: '1rem' }}
-                  >
-                    + Log a Visit
-                  </button>
-
-                  <div className={styles.visitsList}>
-                    {selectedPlace.visits?.map((visit) => (
-                      <div key={visit.id} className={styles.visitCard}>
-                        <p className={styles.visitDate}>{visit.date}</p>
-                        <p>👥 {visit.attendees}</p>
-                        {visit.mealType && <p>🍽️ {visit.mealType}</p>}
-                        <p>💰 {visit.priceTier}</p>
-                        <p>🎭 Vibe: {visit.vibe}/10</p>
-                        <p>👥 Service: {visit.service}/10</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className={styles.column}>
-                  <h3>Items Ordered</h3>
-                  <div className={styles.itemsList}>
-                    {selectedPlace.visits && selectedPlace.visits.length > 0 ? (
-                      selectedPlace.visits.flatMap((v) =>
-                        v.items.map((item) => (
-                          <div key={item.id} className={styles.itemCard}>
-                            <p className={styles.itemName}>{item.name}</p>
-                            <span className={styles.itemTag}>{item.tag}</span>
-                            <p className={styles.itemPrice}>${item.price.toFixed(2)}</p>
-                            <p>⭐ Taste: {item.tasteRating}/10</p>
-                          </div>
-                        ))
-                      )
-                    ) : (
-                      <p className={styles.empty} style={{ padding: '1rem' }}>
-                        No items logged yet
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className={styles.detailActions}>
-                <button onClick={() => handleDeleteDiscovered(selectedPlace.id)} className={styles.dangerBtn}>
-                  Delete this place
-                </button>
-              </div>
-            </div>
-          )}
+          ))}
         </div>
       )}
 
-      {showNewVisitModal && selectedPlace && (
+      {expandedCard && (
         <div className={styles.modal}>
           <div className={styles.modalContent}>
             <div className={styles.modalHeader}>
-              <h2>Log a visit to {selectedPlace.name}</h2>
-              <button onClick={() => setShowNewVisitModal(false)} className={styles.closeBtn}>
+              <h2>Log your visit</h2>
+              <button onClick={() => setExpandedCard(null)} className={styles.closeBtn}>
                 ✕
               </button>
             </div>
 
             <div className={styles.visitForm}>
               <div>
-                <label>📅 When?</label>
+                <label>📅 When did you go?</label>
                 <input
                   type="date"
-                  value={visitForm.date}
-                  onChange={(e) => setVisitForm({ ...visitForm, date: e.target.value })}
+                  value={visitForm.visitDate}
+                  onChange={(e) => setVisitForm({ ...visitForm, visitDate: e.target.value })}
                 />
               </div>
 
               <div>
-                <label>👥 Who went?</label>
-                <select
-                  value={visitForm.attendees}
-                  onChange={(e) => setVisitForm({ ...visitForm, attendees: e.target.value as any })}
-                >
-                  <option value="Dan">Dan</option>
-                  <option value="Nick">Nick</option>
-                  <option value="Dan & Nick">Dan & Nick</option>
-                  <option value="A Party">A Party</option>
-                </select>
-              </div>
-
-              {selectedPlace.type === 'Food' && (
-                <div>
-                  <label>🍽️ Meal type?</label>
-                  <select
-                    value={visitForm.mealType}
-                    onChange={(e) => setVisitForm({ ...visitForm, mealType: e.target.value })}
-                  >
-                    <option value="Breakfast">Breakfast</option>
-                    <option value="Lunch">Lunch</option>
-                    <option value="Happy Hour">Happy Hour</option>
-                    <option value="Dinner">Dinner</option>
-                    <option value="Brunch">Brunch</option>
-                  </select>
-                </div>
-              )}
-
-              {selectedPlace.type === 'Fun' && (
-                <div>
-                  <label>🎯 What did you do?</label>
-                  <textarea
-                    value={visitForm.mealType}
-                    onChange={(e) => setVisitForm({ ...visitForm, mealType: e.target.value })}
-                    placeholder="Describe the activity..."
-                    rows={2}
-                  />
-                </div>
-              )}
-
-              <div>
-                <label>💰 Price tier?</label>
-                <select
-                  value={visitForm.priceTier}
-                  onChange={(e) => setVisitForm({ ...visitForm, priceTier: e.target.value as any })}
-                >
-                  <option value="Cheap">Cheap</option>
-                  <option value="Fair">Fair</option>
-                  <option value="Expensive">Expensive</option>
-                </select>
-              </div>
-
-              <div>
-                <label>🎭 Vibe ({visitForm.vibe}/10)</label>
+                <label>👥 Who did you go with?</label>
                 <input
-                  type="range"
-                  min="1"
-                  max="10"
-                  value={visitForm.vibe}
-                  onChange={(e) => setVisitForm({ ...visitForm, vibe: parseInt(e.target.value) })}
+                  type="text"
+                  placeholder="e.g., Just us two, with friends, family..."
+                  value={visitForm.company}
+                  onChange={(e) => setVisitForm({ ...visitForm, company: e.target.value })}
                 />
               </div>
 
               <div>
-                <label>👥 Service ({visitForm.service}/10)</label>
-                <input
-                  type="range"
-                  min="1"
-                  max="10"
-                  value={visitForm.service}
-                  onChange={(e) => setVisitForm({ ...visitForm, service: parseInt(e.target.value) })}
-                />
-              </div>
-
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <div className={styles.itemsHeader}>
                   <label>🍽️ What did you order?</label>
-                  <button
-                    type="button"
-                    onClick={() => setVisitForm({ ...visitForm, items: [...visitForm.items, { name: '', tag: 'Food', price: 0, tasteRating: 5 }] })}
-                    className={styles.addItemBtn}
-                  >
+                  <button type="button" onClick={handleAddItem} className={styles.addItemBtn}>
                     + Add item
                   </button>
                 </div>
 
                 {visitForm.items.map((item, idx) => (
                   <div key={idx} className={styles.itemInput}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+                    <div className={styles.itemNameRow}>
                       <input
                         type="text"
-                        placeholder="Item name"
+                        placeholder="Dish name"
                         value={item.name}
-                        onChange={(e) => {
-                          const newItems = [...visitForm.items]
-                          newItems[idx].name = e.target.value
-                          setVisitForm({ ...visitForm, items: newItems })
-                        }}
+                        onChange={(e) => handleUpdateItem(idx, 'name', e.target.value)}
                       />
-                      <select
-                        value={item.tag}
-                        onChange={(e) => {
-                          const newItems = [...visitForm.items]
-                          newItems[idx].tag = e.target.value as any
-                          setVisitForm({ ...visitForm, items: newItems })
-                        }}
-                      >
-                        <option value="Food">Food</option>
-                        <option value="Drink">Drink</option>
-                        <option value="Dessert">Dessert</option>
-                        <option value="Activity">Activity</option>
-                      </select>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
-                      <div>
-                        <label style={{ fontSize: '12px' }}>Price</label>
-                        <input
-                          type="number"
-                          placeholder="$"
-                          value={item.price || ''}
-                          onChange={(e) => {
-                            const newItems = [...visitForm.items]
-                            newItems[idx].price = parseFloat(e.target.value) || 0
-                            setVisitForm({ ...visitForm, items: newItems })
-                          }}
-                          step="0.50"
-                        />
-                      </div>
-                      <div>
-                        <label style={{ fontSize: '12px' }}>Taste ({item.tasteRating}/10)</label>
-                        <input
-                          type="range"
-                          min="1"
-                          max="10"
-                          value={item.tasteRating}
-                          onChange={(e) => {
-                            const newItems = [...visitForm.items]
-                            newItems[idx].tasteRating = parseInt(e.target.value)
-                            setVisitForm({ ...visitForm, items: newItems })
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                    {visitForm.items.length > 1 && (
                       <button
                         type="button"
-                        onClick={() => setVisitForm({ ...visitForm, items: visitForm.items.filter((_, i) => i !== idx) })}
-                        className={styles.dangerBtn}
-                        style={{ width: '100%' }}
+                        onClick={() => handleRemoveItem(idx)}
+                        className={styles.removeItemBtn}
                       >
-                        Remove item
+                        ✕
                       </button>
-                    )}
+                    </div>
+                    <div>
+                      <label>How was it?</label>
+                      <StarRating value={item.rating} onChange={(val) => handleUpdateItem(idx, 'rating', val)} />
+                    </div>
+                    <textarea
+                      placeholder="Taste, texture, would you order again..."
+                      value={item.notes}
+                      onChange={(e) => handleUpdateItem(idx, 'notes', e.target.value)}
+                      rows={3}
+                    />
                   </div>
                 ))}
               </div>
 
-              <button onClick={handleLogVisit} className={styles.primaryBtn} style={{ width: '100%' }}>
-                ✓ Save Visit
+              <div>
+                <label>😊 Overall experience</label>
+                <StarRating
+                  value={visitForm.overallRating}
+                  onChange={(val) => setVisitForm({ ...visitForm, overallRating: val })}
+                />
+              </div>
+
+              <div>
+                <label>💡 Atmosphere & vibe</label>
+                <textarea
+                  placeholder="Lighting, music, decor, noise level, service..."
+                  value={visitForm.atmosphere}
+                  onChange={(e) => setVisitForm({ ...visitForm, atmosphere: e.target.value })}
+                  rows={3}
+                />
+              </div>
+
+              <div>
+                <label>💰 Price point</label>
+                <select value={visitForm.pricePoint} onChange={(e) => setVisitForm({ ...visitForm, pricePoint: e.target.value })}>
+                  <option value="$">$ - Budget-friendly</option>
+                  <option value="$$">$$ - Moderate</option>
+                  <option value="$$$">$$$ - Upscale</option>
+                  <option value="$$$$">$$$$ - Fine dining</option>
+                </select>
+              </div>
+
+              <div>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={visitForm.wouldReturn}
+                    onChange={(e) => setVisitForm({ ...visitForm, wouldReturn: e.target.checked })}
+                  />
+                  Would you go back?
+                </label>
+              </div>
+
+              <div>
+                <label>⭐ Best part of the experience</label>
+                <textarea
+                  placeholder="What stood out most? Any special memories..."
+                  value={visitForm.highlights}
+                  onChange={(e) => setVisitForm({ ...visitForm, highlights: e.target.value })}
+                  rows={3}
+                />
+              </div>
+
+              <div>
+                <label>💡 Next time, try...</label>
+                <textarea
+                  placeholder="Dishes to order, timing to go, seating preferences..."
+                  value={visitForm.nextTime}
+                  onChange={(e) => setVisitForm({ ...visitForm, nextTime: e.target.value })}
+                  rows={3}
+                />
+              </div>
+
+              <button onClick={() => handleLogVisit(expandedCard)} className={styles.saveBtn}>
+                ✓ Save visit
               </button>
             </div>
           </div>
@@ -945,7 +448,7 @@ export default function Home() {
       )}
 
       <footer className={styles.footer}>
-        <p>Complex exploration. Simple execution. Both of you, synced automatically.</p>
+        ℹ️ Your list and visit logs are shared between both of you. Changes sync automatically.
       </footer>
     </div>
   )
