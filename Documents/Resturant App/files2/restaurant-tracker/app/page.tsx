@@ -145,8 +145,6 @@ export default function Home() {
       
       if (data.predictions) {
         setPlaceSuggestions(data.predictions)
-        setShowPlaceDropdown(true)
-        setPlaceDropdownType(type)
       }
     } catch (error) {
       console.error('Place search error:', error)
