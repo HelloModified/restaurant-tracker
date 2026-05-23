@@ -442,7 +442,7 @@ export default function Home() {
                       top: '100%',
                       left: 0,
                       right: 0,
-                      backgroundColor: '#F5F5F5',
+                      backgroundColor: '#1EA7A1',
                       border: '2px solid #000000',
                       borderRadius: '6px',
                       maxHeight: '220px',
@@ -456,23 +456,32 @@ export default function Home() {
                           key={idx}
                           onClick={() => selectPlace(prediction, 'discovery')}
                           style={{
-                            padding: '14px 16px',
-                            borderBottom: idx < placeSuggestions.length - 1 ? '1px solid #E0E0E0' : 'none',
-                            backgroundColor: '#F5F5F5',
+                            padding: '12px 16px',
+                            borderBottom: idx < placeSuggestions.length - 1 ? '1px solid rgba(255,255,255,0.2)' : 'none',
+                            backgroundColor: idx % 2 === 0 ? '#1EA7A1' : '#189593',
                             cursor: 'pointer',
-                            color: '#000000',
+                            color: '#FFFFFF',
                             fontSize: '14px',
-                            lineHeight: '1.5',
+                            lineHeight: '1.6',
                             fontWeight: '500',
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: '12px',
                           }}
-                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#E8E8E8')}
-                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#F5F5F5')}
+                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#0F8580')}
+                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = idx % 2 === 0 ? '#1EA7A1' : '#189593')}
+                          title={`${prediction.main_text} - ${prediction.secondary_text}`}
                         >
-                          <div style={{ fontWeight: '700', color: '#000000', marginBottom: '2px' }}>
-                            {prediction.main_text}
-                          </div>
-                          <div style={{ color: '#000000', fontSize: '12px' }}>
-                            {prediction.secondary_text}
+                          <span style={{ fontWeight: '700', minWidth: '24px', flexShrink: 0 }}>
+                            {idx + 1}.
+                          </span>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: '700', color: '#FFFFFF', marginBottom: '2px' }}>
+                              {prediction.main_text}
+                            </div>
+                            <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '12px' }}>
+                              {prediction.secondary_text}
+                            </div>
                           </div>
                         </div>
                       ))}
