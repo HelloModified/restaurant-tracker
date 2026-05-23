@@ -59,8 +59,6 @@ export default function Home() {
   const [showLocationDropdown, setShowLocationDropdown] = useState(false)
   const [locationDropdownType, setLocationDropdownType] = useState<'discovery' | 'discovered' | null>(null)
   const [placeSuggestions, setPlaceSuggestions] = useState<any[]>([])
-  const [showPlaceDropdown, setShowPlaceDropdown] = useState(false)
-  const [placeDropdownType, setPlaceDropdownType] = useState<'discovery' | 'discovered' | null>(null)
   const autocompleteService = useRef<any>(null)
   const placesService = useRef<any>(null)
 
@@ -180,7 +178,6 @@ export default function Home() {
           })
         }
 
-        setShowPlaceDropdown(false)
         setPlaceSuggestions([])
       }
     } catch (error) {
@@ -412,7 +409,7 @@ export default function Home() {
             <form onSubmit={handleAddDiscovery}>
               {/* Place Name + Cuisine Type */}
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px', marginBottom: '16px' }}>
-                <div style={{ position: 'relative' }}>
+                <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#1EA7A1', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Place name</label>
                   <input
                     type="text"
@@ -420,11 +417,9 @@ export default function Home() {
                     value={discoveryForm.name}
                     onChange={(e) => {
                       setDiscoveryForm({ ...discoveryForm, name: e.target.value })
-                      setPlaceDropdownType('discovery')
                       searchPlaces(e.target.value, 'discovery')
                     }}
-                    onFocus={() => discoveryForm.name && setShowPlaceDropdown(true)}
-                    onBlur={() => setTimeout(() => setShowPlaceDropdown(false), 200)}
+                    list="places-list-discovery"
                     required
                     style={{
                       width: '100%',
@@ -436,57 +431,15 @@ export default function Home() {
                       backdropFilter: 'blur(10px)',
                     }}
                   />
-                  {showPlaceDropdown && placeDropdownType === 'discovery' && placeSuggestions.length > 0 && (
-                    <div style={{
-                      position: 'absolute',
-                      top: '100%',
-                      left: 0,
-                      right: 0,
-                      backgroundColor: '#1EA7A1',
-                      border: '2px solid #000000',
-                      borderRadius: '6px',
-                      maxHeight: '220px',
-                      overflowY: 'auto',
-                      zIndex: 99999,
-                      marginTop: '6px',
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
-                    }}>
-                      {placeSuggestions.map((prediction, idx) => (
-                        <div
-                          key={idx}
-                          onClick={() => selectPlace(prediction, 'discovery')}
-                          style={{
-                            padding: '12px 16px',
-                            borderBottom: idx < placeSuggestions.length - 1 ? '1px solid rgba(255,255,255,0.2)' : 'none',
-                            backgroundColor: idx % 2 === 0 ? '#1EA7A1' : '#189593',
-                            cursor: 'pointer',
-                            color: '#FFFFFF',
-                            fontSize: '14px',
-                            lineHeight: '1.6',
-                            fontWeight: '500',
-                            display: 'flex',
-                            alignItems: 'flex-start',
-                            gap: '12px',
-                          }}
-                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#0F8580')}
-                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = idx % 2 === 0 ? '#1EA7A1' : '#189593')}
-                          title={`${prediction.main_text} - ${prediction.secondary_text}`}
-                        >
-                          <span style={{ fontWeight: '700', minWidth: '24px', flexShrink: 0 }}>
-                            {idx + 1}.
-                          </span>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontWeight: '700', color: '#FFFFFF', marginBottom: '2px' }}>
-                              {prediction.main_text}
-                            </div>
-                            <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '12px' }}>
-                              {prediction.secondary_text}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <datalist id="places-list-discovery">
+                    {placeSuggestions.map((prediction, idx) => (
+                      <option 
+                        key={idx}
+                        value={prediction.main_text}
+                        label={prediction.secondary_text}
+                      />
+                    ))}
+                  </datalist>
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#1EA7A1', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Cuisine</label>
@@ -762,62 +715,27 @@ export default function Home() {
                 <h2>Log a new visit</h2>
                 <form onSubmit={handleAddDiscovered}>
                   <div className={styles.formRow}>
-                    <div style={{ position: 'relative', flex: 1 }}>
+                    <div style={{ flex: 1 }}>
                       <input
                         type="text"
                         placeholder="Place name"
                         value={discoveredForm.name}
                         onChange={(e) => {
                           setDiscoveredForm({ ...discoveredForm, name: e.target.value })
-                          setPlaceDropdownType('discovered')
                           searchPlaces(e.target.value, 'discovered')
                         }}
-                        onFocus={() => discoveredForm.name && setShowPlaceDropdown(true)}
-                        onBlur={() => setTimeout(() => setShowPlaceDropdown(false), 200)}
+                        list="places-list-discovered"
                         required
                       />
-                      {showPlaceDropdown && placeDropdownType === 'discovered' && placeSuggestions.length > 0 && (
-                        <div style={{
-                          position: 'absolute',
-                          top: '100%',
-                          left: 0,
-                          right: 0,
-                          backgroundColor: '#F5F5F5',
-                          border: '2px solid #000000',
-                          borderRadius: '6px',
-                          maxHeight: '220px',
-                          overflowY: 'auto',
-                          zIndex: 99999,
-                          marginTop: '6px',
-                          boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
-                        }}>
-                          {placeSuggestions.map((prediction, idx) => (
-                            <div
-                              key={idx}
-                              onClick={() => selectPlace(prediction, 'discovered')}
-                              style={{
-                                padding: '14px 16px',
-                                borderBottom: idx < placeSuggestions.length - 1 ? '1px solid #E0E0E0' : 'none',
-                                backgroundColor: '#F5F5F5',
-                                cursor: 'pointer',
-                                color: '#000000',
-                                fontSize: '14px',
-                                lineHeight: '1.5',
-                                fontWeight: '500',
-                              }}
-                              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#E8E8E8')}
-                              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#F5F5F5')}
-                            >
-                              <div style={{ fontWeight: '700', color: '#000000', marginBottom: '2px' }}>
-                                {prediction.main_text}
-                              </div>
-                              <div style={{ color: '#000000', fontSize: '12px' }}>
-                                {prediction.secondary_text}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                      <datalist id="places-list-discovered">
+                        {placeSuggestions.map((prediction, idx) => (
+                          <option 
+                            key={idx}
+                            value={prediction.main_text}
+                            label={prediction.secondary_text}
+                          />
+                        ))}
+                      </datalist>
                     </div>
                     <select
                       value={discoveredForm.type}
